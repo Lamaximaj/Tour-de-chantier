@@ -4,20 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Tour de chantier</title>
 <style>
   :root{
-    --bg:#F2F3F5;          /* gris béton clair */
-    --paper:#FFFFFF;
-    --ink:#16181D;
-    --muted:#6B7280;
-    --line:#DADDE2;
-    --accent:#FF5A1F;      /* orange signalisation */
-    --accent-dark:#C93E0D;
-    --ok:#1F8A4C;
-    --danger:#C62828;
-    --radius:12px;
+    --paper:#FBFAF6;        /* papier plan */
+    --bg:#EFEDE6;           /* fond feuille */
+    --ink:#1D1D1F;          /* encre */
+    --muted:#71716C;
+    --line:#C8C6BC;         /* traits fins */
+    --brick:#A32E20;        /* rouge brique — murs conservés */
+    --brick-dark:#7E2318;
+    --brick-paper:#F5E7E3;
+    --ok:#2F6B3F;
+    --danger:#A32E20;
+    --r:2px;                /* angles de dessin technique */
     --tap:52px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -25,91 +26,108 @@
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg);color:var(--ink);
-    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+    padding-bottom:calc(80px + env(safe-area-inset-bottom));
     font-size:16px;line-height:1.45;
   }
-  /* ---- bande rubalise (signature) ---- */
-  .hazard{
-    height:10px;
-    background:repeating-linear-gradient(-45deg,var(--accent) 0 14px,var(--ink) 14px 28px);
+
+  /* ---- hachures brique (signature, cf. légende "murs porteurs conservés") ---- */
+  .hatch{
+    height:12px;
+    background-color:var(--brick-paper);
+    background-image:repeating-linear-gradient(45deg, var(--brick) 0 1.6px, transparent 1.6px 6px);
+    border-bottom:1.5px solid var(--ink);
   }
+
+  /* ---- cartouche ---- */
   header.app{
-    background:var(--paper);border-bottom:1px solid var(--line);
-    padding:calc(10px + env(safe-area-inset-top)) 16px 12px;
+    background:var(--paper);
+    border-bottom:1.5px solid var(--ink);
+    padding-top:env(safe-area-inset-top);
   }
-  header.app .eyebrow{
-    font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-dark);
+  .cartouche{max-width:640px;margin:0 auto;}
+  .cartouche .row1{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:8px 16px 6px;border-bottom:1px solid var(--line);
   }
-  header.app h1{font-size:22px;font-weight:800;letter-spacing:-0.01em}
-  header.app .site{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .cartouche .row1 .phase{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--brick-dark)}
+  .cartouche .row1 .date{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+  .cartouche h1{font-size:21px;font-weight:800;letter-spacing:-0.01em;padding:8px 16px 2px}
+  .cartouche .site{font-size:12px;color:var(--muted);padding:0 16px 10px;letter-spacing:.02em}
 
   main{padding:16px;max-width:640px;margin:0 auto}
   .screen{display:none}
   .screen.active{display:block}
 
-  h2{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  h2{
+    font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);
+    margin:20px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--ink);
+    display:flex;align-items:center;gap:8px;
+  }
+  h2::before{content:"";width:10px;height:10px;border:1px solid var(--ink);
+    background-image:repeating-linear-gradient(45deg, var(--brick) 0 1.2px, transparent 1.2px 4px);
+    background-color:var(--brick-paper);flex-shrink:0}
   h2:first-child{margin-top:0}
 
-  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
 
-  label{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px}
+  label{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px}
   label:first-child{margin-top:0}
   select,input[type=text],input[type=email],textarea{
     width:100%;min-height:var(--tap);padding:12px;font-size:17px;font-family:inherit;
-    border:1.5px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);
+    border:1px solid var(--ink);border-radius:var(--r);background:var(--paper);color:var(--ink);
     appearance:none;-webkit-appearance:none;
   }
-  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%2316181D' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%231D1D1F' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
   textarea{min-height:96px;resize:vertical}
-  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brick);box-shadow:0 0 0 1px var(--brick)}
 
   .btn{
     display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
-    min-height:var(--tap);padding:12px 16px;border:none;border-radius:10px;
-    font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;
+    min-height:var(--tap);padding:12px 16px;border-radius:var(--r);
+    font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;
+    letter-spacing:.02em;border:1.5px solid var(--ink);
   }
-  .btn-primary{background:var(--accent);color:#fff}
-  .btn-primary:active{background:var(--accent-dark)}
-  .btn-outline{background:var(--paper);color:var(--ink);border:1.5px solid var(--ink)}
-  .btn-ghost{background:transparent;color:var(--accent-dark);border:1.5px dashed var(--line)}
-  .btn-danger{background:transparent;color:var(--danger);border:1.5px solid var(--danger)}
-  .btn-sm{min-height:40px;font-size:14px;padding:8px 12px;width:auto}
+  .btn-primary{background:var(--brick);border-color:var(--brick-dark);color:#fff}
+  .btn-primary:active{background:var(--brick-dark)}
+  .btn-outline{background:var(--paper);color:var(--ink)}
+  .btn-danger{background:transparent;color:var(--brick-dark);border-color:var(--brick)}
+  .btn-sm{min-height:40px;font-size:13px;padding:8px 12px;width:auto;letter-spacing:.04em;text-transform:uppercase}
   .btn:disabled{opacity:.4}
-  .row{display:flex;gap:10px}
+  .row{display:flex;gap:10px;margin-top:10px}
   .row .btn{flex:1}
 
   /* photo */
-  .photo-slot{position:relative;border:2px dashed var(--line);border-radius:var(--radius);overflow:hidden;background:var(--paper)}
+  .photo-slot{position:relative;border:1px dashed var(--ink);border-radius:var(--r);overflow:hidden;background:var(--paper)}
   .photo-slot.empty{display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--muted);font-weight:600}
   .photo-slot img{display:block;width:100%;max-height:280px;object-fit:cover}
   .photo-slot input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
 
   /* liste observations */
   .obs{display:flex;gap:12px;align-items:flex-start}
-  .obs img{width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0;background:var(--bg)}
-  .obs .noimg{width:72px;height:72px;border-radius:8px;flex-shrink:0;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px}
+  .obs img{width:72px;height:72px;object-fit:cover;border-radius:var(--r);border:1px solid var(--line);flex-shrink:0;background:var(--bg)}
+  .obs .noimg{width:72px;height:72px;border-radius:var(--r);border:1px solid var(--line);flex-shrink:0;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px}
   .obs .meta{flex:1;min-width:0}
-  .obs .loc{font-weight:700;font-size:15px}
-  .obs .ent{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-dark);border:1px solid var(--accent);border-radius:99px;padding:1px 8px;margin:4px 0}
-  .obs .desc{font-size:14px;color:var(--ink)}
+  .obs .loc{font-weight:800;font-size:15px}
+  .obs .ent{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brick-dark);border:1px solid var(--brick);border-radius:var(--r);padding:2px 7px;margin:5px 0;background:var(--brick-paper)}
+  .obs .desc{font-size:14px}
   .obs .date{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-  .obs.done{opacity:.55}
+  .obs.done{opacity:.5}
   .obs.done .loc{text-decoration:line-through}
   .obs-actions{display:flex;gap:8px;margin-top:10px}
   .obs-actions .btn{flex:1}
 
   .count{font-variant-numeric:tabular-nums;font-weight:800}
   .empty-state{text-align:center;color:var(--muted);padding:36px 16px}
-  .empty-state .big{font-size:40px;margin-bottom:8px}
+  .empty-state .big{font-size:38px;margin-bottom:8px}
 
   /* réglages : listes éditables */
   .chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-  .chip{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:6px 6px 6px 14px;font-size:15px;font-weight:600}
-  .chip button{border:none;background:var(--ink);color:#fff;border-radius:99px;width:24px;height:24px;font-size:14px;line-height:1;cursor:pointer}
+  .chip{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--ink);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:14px;font-weight:600}
+  .chip button{border:1px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:var(--r);width:24px;height:24px;font-size:14px;line-height:1;cursor:pointer}
   .add-row{display:flex;gap:8px}
   .add-row input{flex:1}
-  .add-row .btn{width:var(--tap);flex-shrink:0;font-size:24px}
-  .ent-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+  .add-row .btn{width:var(--tap);flex-shrink:0;font-size:22px}
+  .ent-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
   .ent-item:last-child{border-bottom:none}
   .ent-item .n{font-weight:700}
   .ent-item .e{font-size:13px;color:var(--muted);word-break:break-all}
@@ -117,55 +135,42 @@
   /* barre d'onglets */
   nav{
     position:fixed;bottom:0;left:0;right:0;background:var(--paper);
-    border-top:1px solid var(--line);display:flex;
+    border-top:1.5px solid var(--ink);display:flex;
     padding-bottom:env(safe-area-inset-bottom);z-index:10;
   }
   nav button{
-    flex:1;background:none;border:none;padding:10px 4px 8px;cursor:pointer;
-    font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted);
+    flex:1;background:none;border:none;padding:10px 4px 8px;cursor:pointer;position:relative;
+    font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
     display:flex;flex-direction:column;align-items:center;gap:3px;
   }
-  nav button .ic{font-size:22px;line-height:1}
-  nav button.active{color:var(--accent-dark)}
-  nav button.active .ic{transform:translateY(-1px)}
-  nav .badge{position:absolute;transform:translate(16px,-4px);background:var(--accent);color:#fff;font-size:10px;font-weight:800;border-radius:99px;min-width:17px;padding:1px 4px;font-variant-numeric:tabular-nums}
+  nav button .ic{font-size:21px;line-height:1}
+  nav button.active{color:var(--brick-dark)}
+  nav button.active::after{content:"";position:absolute;top:0;left:20%;right:20%;height:3px;background:var(--brick)}
+  nav .badge{position:absolute;transform:translate(16px,-4px);background:var(--brick);color:#fff;font-size:10px;font-weight:800;border-radius:99px;min-width:17px;padding:1px 4px;font-variant-numeric:tabular-nums}
 
   .toast{
-    position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
-    background:var(--ink);color:#fff;padding:10px 18px;border-radius:99px;font-size:14px;font-weight:600;
-    opacity:0;transition:.25s;z-index:20;pointer-events:none;white-space:nowrap;
+    position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:var(--r);font-size:14px;font-weight:600;
+    opacity:0;transition:.25s;z-index:20;pointer-events:none;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   .hint{font-size:13px;color:var(--muted);margin-top:8px}
-
-  /* ---------- RAPPORT IMPRIMABLE ---------- */
-  #report{display:none}
-  @media print{
-    body{background:#fff;padding:0}
-    body > *:not(#report){display:none !important}
-    #report{display:block;font-size:12pt;color:#000}
-    #report .hazard{height:8px}
-    .rp-head{padding:14pt 0 8pt;border-bottom:2px solid #000;margin-bottom:10pt}
-    .rp-head .t1{font-size:9pt;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-    .rp-head h1{font-size:20pt;font-weight:800;margin:2pt 0}
-    .rp-head .meta{font-size:10pt;color:#333}
-    .rp-obs{border:1px solid #999;border-radius:6pt;padding:10pt;margin-bottom:10pt;page-break-inside:avoid}
-    .rp-obs .num{font-weight:800;font-size:9pt;letter-spacing:.1em;text-transform:uppercase}
-    .rp-obs .loc{font-size:13pt;font-weight:700;margin:2pt 0}
-    .rp-obs .desc{margin:4pt 0}
-    .rp-obs img{max-width:100%;max-height:88mm;border-radius:4pt;margin-top:6pt}
-    .rp-foot{font-size:9pt;color:#555;margin-top:12pt}
-  }
+  .hidden{display:none !important}
 </style>
 </head>
 <body>
 
-<div class="hazard"></div>
+<div class="hatch"></div>
 <header class="app">
-  <div class="eyebrow">Tour de chantier</div>
-  <h1 id="hd-title">Observations</h1>
-  <div class="site" id="hd-site"></div>
+  <div class="cartouche">
+    <div class="row1">
+      <span class="phase">Tour de chantier — Phase DET</span>
+      <span class="date" id="hd-date"></span>
+    </div>
+    <h1 id="hd-title">Observations</h1>
+    <div class="site" id="hd-site"></div>
+  </div>
 </header>
 
 <main>
@@ -193,6 +198,7 @@
       <textarea id="f-desc" placeholder="Ex. : reprendre le joint silicone autour de la baignoire"></textarea>
     </div>
     <button class="btn btn-primary" id="btn-save">Enregistrer l'observation</button>
+    <button class="btn btn-outline hidden" id="btn-cancel-edit" style="margin-top:10px">Annuler la modification</button>
     <p class="hint">Les listes d'étages, pièces et entreprises se gèrent dans Réglages.</p>
   </section>
 
@@ -223,6 +229,7 @@
     <div class="card">
       <label for="s-chantier">Nom du chantier</label>
       <input type="text" id="s-chantier" placeholder="Ex. : Résidence Les Tilleuls">
+      <p class="hint" id="storage-status"></p>
     </div>
 
     <h2>Étages</h2>
@@ -258,8 +265,10 @@
     <h2>Données</h2>
     <div class="card">
       <button class="btn btn-outline btn-sm" id="btn-export" style="width:100%;margin-bottom:8px">Exporter une sauvegarde (JSON)</button>
+      <button class="btn btn-outline btn-sm" id="btn-import" style="width:100%;margin-bottom:8px">Importer une sauvegarde</button>
+      <input type="file" id="import-file" accept=".json,application/json" class="hidden">
       <button class="btn btn-danger btn-sm" id="btn-clear" style="width:100%">Supprimer toutes les observations</button>
-      <p class="hint">Les données sont stockées uniquement sur cet appareil, dans ce navigateur.</p>
+      <p class="hint">Les données sont stockées uniquement sur cet appareil. Pensez à exporter une sauvegarde de temps en temps.</p>
     </div>
   </section>
 
@@ -275,29 +284,46 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- Rapport imprimable -->
-<div id="report"></div>
-
 <script>
-/* =============== STOCKAGE (window.storage → localStorage → mémoire) =============== */
+/* =================================================================
+   STOCKAGE — IndexedDB (fiable et spacieux) → localStorage → mémoire
+   ================================================================= */
 const mem = {};
+const idb = {
+  db:null,
+  open(){
+    return new Promise((res)=>{
+      if (!("indexedDB" in window)) return res(false);
+      const rq = indexedDB.open("tour-chantier", 1);
+      rq.onupgradeneeded = ()=>{ rq.result.createObjectStore("kv"); };
+      rq.onsuccess = ()=>{ idb.db = rq.result; res(true); };
+      rq.onerror = ()=>res(false);
+      rq.onblocked = ()=>res(false);
+    });
+  },
+  tx(mode){ return idb.db.transaction("kv", mode).objectStore("kv"); },
+  get(k){ return new Promise((res,rej)=>{ const r=idb.tx("readonly").get(k); r.onsuccess=()=>res(r.result===undefined?null:r.result); r.onerror=()=>rej(r.error); }); },
+  set(k,v){ return new Promise((res,rej)=>{ const r=idb.tx("readwrite").put(v,k); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); },
+  del(k){ return new Promise((res,rej)=>{ const r=idb.tx("readwrite").delete(k); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); },
+  keys(){ return new Promise((res,rej)=>{ const r=idb.tx("readonly").getAllKeys(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+};
+let idbOk = false;
 const store = {
   async get(k){
-    if (window.storage) { try { const r = await window.storage.get(k); return r ? JSON.parse(r.value) : null; } catch(e){ return null; } }
+    if (idbOk){ try { return await idb.get(k); } catch(e){} }
     try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e){ return mem[k] ?? null; }
   },
   async set(k,v){
-    const s = JSON.stringify(v);
-    if (window.storage) { try { await window.storage.set(k,s); return; } catch(e){} }
-    try { localStorage.setItem(k,s); } catch(e){ mem[k]=v; toast("Mémoire pleine : supprimez d'anciennes observations"); }
+    if (idbOk){ try { await idb.set(k,v); return; } catch(e){} }
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){ mem[k]=v; toast("Mémoire pleine : exportez une sauvegarde"); }
   },
   async del(k){
-    if (window.storage) { try { await window.storage.delete(k); return; } catch(e){} }
+    if (idbOk){ try { await idb.del(k); return; } catch(e){} }
     try { localStorage.removeItem(k); } catch(e){ delete mem[k]; }
   }
 };
 
-/* =============== ÉTAT =============== */
+/* =============== CONFIGURATION PAR DÉFAUT (plans Atelier Téqui) =============== */
 function logements(prefix, n){ const a=[]; for(let i=1;i<=n;i++) a.push("Logement "+prefix+String(i).padStart(2,"0")); return a; }
 const COMMUNS_ETAGE = ["Circulation","Palier","Escalier","Ascenseur"];
 const DEFAULT_CFG = {
@@ -316,42 +342,80 @@ const DEFAULT_CFG = {
     "R+7 Toiture": ["Terrasse collective","Toiture végétalisée","Stockage terrasse","Local technique","Palier","Escalier","Ascenseur"],
     "Extérieurs / Façades": ["Façade rue du Bessin","Façade rue Castagnary","Façades sur cour","Toiture zinc","Clôtures / Serrurerie","Espaces plantés","Rampe / Accès parking"]
   },
-  entreprises: [] // {id, nom, email}
+  entreprises: []
 };
+
+/* =============== ÉTAT =============== */
 let cfg = null;
-let observations = []; // {id, ts, etage, piece, entId, desc, statut, photo}
-let currentPhoto = null;
+let observations = [];
+let currentPhoto = null;   // nouvelle photo prise (dataURL) — null = inchangée
+let editingId = null;      // id de l'observation en cours de modification
 
 const $ = s => document.querySelector(s);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate = ts => new Date(ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}) + " " + new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 const entName = id => (cfg.entreprises.find(e=>e.id===id)||{}).nom || "—";
+function piecesFor(etage){ return (cfg.pieces && cfg.pieces[etage]) || []; }
 
 function toast(msg){
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(t._to); t._to = setTimeout(()=>t.classList.remove("show"), 2200);
+  clearTimeout(t._to); t._to = setTimeout(()=>t.classList.remove("show"), 2400);
 }
 
 /* =============== INIT =============== */
-function piecesFor(etage){ return (cfg.pieces && cfg.pieces[etage]) || []; }
 async function init(){
-  cfg = (await store.get("cfg")) || structuredClone(DEFAULT_CFG);
-  // migration : ancienne version où "pieces" était une liste unique
-  if (Array.isArray(cfg.pieces)){
-    const flat = cfg.pieces;
-    cfg.pieces = {};
-    for (const e of cfg.etages) cfg.pieces[e] = [...flat];
-    await store.set("cfg", cfg);
+  idbOk = await idb.open();
+
+  // demande à iOS/Safari de ne pas purger les données du site
+  try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e){}
+
+  cfg = await store.get("cfg");
+
+  // Migration depuis l'ancienne version (localStorage) vers IndexedDB
+  if (!cfg && idbOk){
+    try {
+      const oldCfg = localStorage.getItem("cfg");
+      if (oldCfg){
+        await idb.set("cfg", JSON.parse(oldCfg));
+        const oldIdx = localStorage.getItem("obs-index");
+        if (oldIdx){
+          const idx = JSON.parse(oldIdx);
+          await idb.set("obs-index", idx);
+          for (const o of idx){
+            const p = localStorage.getItem("photo:"+o.id);
+            if (p) await idb.set("photo:"+o.id, JSON.parse(p));
+          }
+        }
+        cfg = await store.get("cfg");
+        toast("Données récupérées ✓");
+      }
+    } catch(e){}
   }
+  if (!cfg) cfg = structuredClone(DEFAULT_CFG);
+
+  // Migration : "pieces" liste unique → pièces par étage
+  if (Array.isArray(cfg.pieces)){
+    const flat = cfg.pieces; cfg.pieces = {};
+    for (const e of cfg.etages) cfg.pieces[e] = [...flat];
+    await saveCfg();
+  }
+
   observations = (await store.get("obs-index")) || [];
-  // recharge les photos stockées séparément
   for (const o of observations){
     if (o.hasPhoto && !o.photo){
       const p = await store.get("photo:"+o.id);
       if (p) o.photo = p;
     }
   }
+
+  // état de la persistance affiché dans Réglages
+  let persisted = false;
+  try { if (navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted(); } catch(e){}
+  $("#storage-status").textContent = idbOk
+    ? (persisted ? "Stockage : base interne, protégé contre la purge iOS ✓" : "Stockage : base interne de l'appareil ✓")
+    : "Stockage de secours (limité) — vérifiez que l'app est bien installée sur l'écran d'accueil.";
+
   renderAll();
   showScreen("new");
 }
@@ -367,10 +431,13 @@ function showScreen(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   $("#screen-"+name).classList.add("active");
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active", b.dataset.screen===name));
-  $("#hd-title").textContent = TITLES[name];
+  $("#hd-title").textContent = (name==="new" && editingId) ? "Modifier l'observation" : TITLES[name];
   window.scrollTo(0,0);
 }
-document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>showScreen(b.dataset.screen)));
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+  if (editingId && b.dataset.screen!=="new") cancelEdit(false);
+  showScreen(b.dataset.screen);
+}));
 
 /* =============== RENDUS =============== */
 function fillSelect(sel, items, placeholder){
@@ -384,7 +451,8 @@ function fillSelect(sel, items, placeholder){
   }
 }
 function renderAll(){
-  $("#hd-site").textContent = cfg.chantier ? cfg.chantier + " · " + new Date().toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
+  $("#hd-date").textContent = new Date().toLocaleDateString('fr-FR');
+  $("#hd-site").textContent = cfg.chantier || "";
   fillSelect($("#f-etage"), cfg.etages, "Choisir un étage…");
   refreshPieceSelect();
   fillSelect($("#f-ent"), cfg.entreprises, cfg.entreprises.length ? "Choisir une entreprise…" : "Aucune entreprise (voir Réglages)");
@@ -398,7 +466,6 @@ function updateBadge(){
   const b = $("#nav-count");
   b.style.display = n ? "" : "none"; b.textContent = n;
 }
-
 function refreshPieceSelect(){
   const et = $("#f-etage").value;
   fillSelect($("#f-piece"), piecesFor(et), et ? "Choisir une pièce…" : "Choisir d'abord un étage…");
@@ -418,29 +485,75 @@ $("#photo-input").addEventListener("change", ev=>{
     c.getContext("2d").drawImage(img,0,0,c.width,c.height);
     currentPhoto = c.toDataURL("image/jpeg",0.65);
     URL.revokeObjectURL(url);
-    const p = $("#photo-preview"); p.src = currentPhoto; p.style.display="block";
-    $("#photo-hint").style.display="none";
-    $("#photo-slot").classList.remove("empty");
+    showPhotoPreview(currentPhoto);
   };
   img.src = url;
 });
+function showPhotoPreview(dataURL){
+  const p = $("#photo-preview");
+  if (dataURL){ p.src = dataURL; p.style.display="block"; $("#photo-hint").style.display="none"; $("#photo-slot").classList.remove("empty"); }
+  else { p.style.display="none"; $("#photo-hint").style.display=""; $("#photo-slot").classList.add("empty"); }
+  $("#photo-input").value = "";
+}
+function resetForm(keepLocation=true){
+  $("#f-desc").value = "";
+  currentPhoto = null;
+  showPhotoPreview(null);
+  if (!keepLocation){ $("#f-etage").value=""; refreshPieceSelect(); $("#f-ent").value=""; }
+}
 
-/* ---- enregistrer ---- */
+/* ---- enregistrer (création ou modification) ---- */
 $("#btn-save").addEventListener("click", async ()=>{
   const etage=$("#f-etage").value, piece=$("#f-piece").value, entId=$("#f-ent").value, desc=$("#f-desc").value.trim();
   if (!etage||!piece){ toast("Indiquez l'étage et la pièce"); return; }
   if (!entId){ toast("Choisissez l'entreprise concernée"); return; }
   if (!desc){ toast("Décrivez ce qu'il faut faire"); return; }
+
+  if (editingId){
+    const o = observations.find(x=>x.id===editingId);
+    if (o){
+      o.etage=etage; o.piece=piece; o.entId=entId; o.desc=desc;
+      if (currentPhoto){ o.photo=currentPhoto; await store.set("photo:"+o.id, o.photo); }
+      await saveObs();
+      toast("Observation modifiée ✓");
+    }
+    cancelEdit(false);
+    renderList(); updateBadge(); updateReportSummary();
+    showScreen("list");
+    return;
+  }
+
   const o = { id:uid(), ts:Date.now(), etage, piece, entId, desc, statut:"todo", photo:currentPhoto };
   observations.unshift(o);
   if (o.photo) await store.set("photo:"+o.id, o.photo);
   await saveObs();
-  // reset (on garde étage + pièce : on enchaîne souvent dans la même zone)
-  $("#f-desc").value=""; currentPhoto=null;
-  $("#photo-preview").style.display="none"; $("#photo-hint").style.display=""; $("#photo-slot").classList.add("empty"); $("#photo-input").value="";
+  resetForm(true); // on garde étage + pièce : on enchaîne souvent dans la même zone
   renderList(); updateBadge(); updateReportSummary();
   toast("Observation enregistrée ✓");
 });
+
+/* ---- modification ---- */
+function startEdit(id){
+  const o = observations.find(x=>x.id===id); if (!o) return;
+  editingId = id;
+  $("#f-etage").value = o.etage; refreshPieceSelect();
+  $("#f-piece").value = o.piece;
+  $("#f-ent").value = o.entId;
+  $("#f-desc").value = o.desc;
+  currentPhoto = null;
+  showPhotoPreview(o.photo || null);
+  $("#btn-save").textContent = "Enregistrer les modifications";
+  $("#btn-cancel-edit").classList.remove("hidden");
+  showScreen("new");
+}
+function cancelEdit(goBack=true){
+  editingId = null;
+  $("#btn-save").textContent = "Enregistrer l'observation";
+  $("#btn-cancel-edit").classList.add("hidden");
+  resetForm(true);
+  if (goBack) showScreen("list");
+}
+$("#btn-cancel-edit").addEventListener("click", ()=>cancelEdit(true));
 
 /* ---- liste ---- */
 $("#filter-ent").addEventListener("change", renderList);
@@ -464,10 +577,12 @@ function renderList(){
         </div>
       </div>
       <div class="obs-actions">
-        <button class="btn btn-outline btn-sm" data-toggle="${o.id}">${o.statut==='done'?"Rouvrir":"Marquer fait ✓"}</button>
-        <button class="btn btn-danger btn-sm" data-del="${o.id}">Supprimer</button>
+        <button class="btn btn-outline btn-sm" data-edit="${o.id}">Modifier</button>
+        <button class="btn btn-outline btn-sm" data-toggle="${o.id}">${o.statut==='done'?"Rouvrir":"Fait ✓"}</button>
+        <button class="btn btn-danger btn-sm" data-del="${o.id}">Suppr.</button>
       </div>
     </div>`).join("");
+  box.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", ()=>startEdit(b.dataset.edit)));
   box.querySelectorAll("[data-toggle]").forEach(b=>b.addEventListener("click", async ()=>{
     const o = observations.find(x=>x.id===b.dataset.toggle);
     o.statut = o.statut==="done" ? "todo" : "done";
@@ -495,8 +610,8 @@ function updateReportSummary(){
     : "Sélectionnez une entreprise pour générer son rapport.";
   $("#btn-print").disabled = $("#btn-mail").disabled = !entId || !n;
 }
+
 /* ---------- Génération PDF native (sans dépendance, fonctionne hors-ligne) ---------- */
-// Encode une chaîne en octets WinAnsi (latin-1 + ponctuation courante)
 const WIN = {0x2019:0x92,0x2018:0x91,0x201C:0x93,0x201D:0x94,0x2013:0x96,0x2014:0x97,0x20AC:0x80,0x0153:0x9C,0x0152:0x8C,0x2026:0x85,0x00A0:0x20};
 const L1 = s => { const out=[]; for (const ch of String(s)){ let c=ch.codePointAt(0); if (c>0xFF) c=WIN[c]||63; out.push(c);} return out; };
 const pdfStr = s => String(s).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
@@ -516,10 +631,9 @@ function wrapText(str, maxChars){
 
 async function buildPdf(ent, list){
   const PW=595, PH=842, M=42, BW=PW-2*M;
-  const ORANGE="1 0.35 0.12", INK="0.09 0.09 0.11", GRAY="0.45 0.45 0.48";
+  const BRICK="0.64 0.18 0.13", INK="0.11 0.11 0.12", GRAY="0.44 0.44 0.42";
   const today = new Date().toLocaleDateString('fr-FR');
 
-  // Dimensions des photos (chargement asynchrone)
   const photos = await Promise.all(list.map(o => o.photo ? new Promise(res=>{
     const im=new Image();
     im.onload=()=>res({w:im.naturalWidth,h:im.naturalHeight,data:o.photo});
@@ -528,21 +642,23 @@ async function buildPdf(ent, list){
   }) : Promise.resolve(null)));
 
   const pages=[]; let cur=null, y=0;
-  const images=[]; // {bytes,w,h} — nom /ImN = index+1
-  const np = ()=>{ cur={ops:[]}; pages.push(cur); y=PH-M;
-    // bande rubalise en tête de chaque page
-    for (let x=0; x<PW; x+=24){ rect(x,PH-10,12,10,ORANGE); rect(x+12,PH-10,12,10,INK); }
-    y = PH-34;
-  };
+  const images=[];
   const op   = s => cur.ops.push(...L1(s));
   const rect = (x,yy,w,h,rgb)=>op(`${rgb} rg ${x.toFixed(1)} ${yy.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f\n`);
-  const line = (yy)=>op(`0.85 0.85 0.87 RG 0.7 w ${M} ${yy.toFixed(1)} m ${PW-M} ${yy.toFixed(1)} l S\n`);
+  const line = (yy)=>op(`0.78 0.77 0.73 RG 0.6 w ${M} ${yy.toFixed(1)} m ${PW-M} ${yy.toFixed(1)} l S\n`);
   const text = (x,yy,str,font,size,rgb=INK)=>op(`BT ${rgb} rg /${font} ${size} Tf ${x.toFixed(1)} ${yy.toFixed(1)} Td (${pdfStr(str)}) Tj ET\n`);
+  const np = ()=>{
+    cur={ops:[]}; pages.push(cur);
+    // bande hachurée façon "murs conservés" en tête de page
+    op(`${BRICK} RG 0.9 w\n`);
+    for (let x=-14; x<PW; x+=6) op(`${x} ${PH-14} m ${x+14} ${PH} l S\n`);
+    op(`${INK} RG 1.2 w ${0} ${PH-14} m ${PW} ${PH-14} l S\n`);
+    y = PH-38;
+  };
   const need = h => { if (y-h < M) np(); };
 
   np();
-  // En-tête
-  text(M, y-10, "RAPPORT DE VISITE DE CHANTIER", "F2", 9, ORANGE); y-=26;
+  text(M, y-10, "RAPPORT DE VISITE DE CHANTIER — PHASE DET", "F2", 9, BRICK); y-=26;
   text(M, y-10, ent.nom, "F2", 19); y-=24;
   text(M, y-8, `${cfg.chantier || "Chantier"} — visite du ${today} — ${list.length} point${list.length>1?"s":""} à traiter`, "F1", 10, GRAY); y-=16;
   line(y); y-=18;
@@ -555,7 +671,7 @@ async function buildPdf(ent, list){
     const blockH = 14+18+descLines.length*13+13+(ph?hpt+8:0)+16;
     need(Math.min(blockH, PH-2*M));
 
-    text(M, y-9, `POINT ${i+1} / ${list.length}`, "F2", 9, ORANGE); y-=15;
+    text(M, y-9, `POINT ${i+1} / ${list.length}`, "F2", 9, BRICK); y-=15;
     text(M, y-11, `${o.etage} — ${o.piece}`, "F2", 13); y-=18;
     for (const l of descLines){ need(13); text(M, y-9, l, "F1", 11); y-=13; }
     need(13); text(M, y-8, "Constaté le "+fmtDate(o.ts), "F1", 9, GRAY); y-=15;
@@ -569,7 +685,6 @@ async function buildPdf(ent, list){
   need(14);
   text(M, y-9, `Rapport généré le ${today}. Merci de confirmer la levée de chaque point par retour d'email.`, "F1", 9, GRAY);
 
-  // Images JPEG → XObjects
   photos.forEach(ph=>{
     if (!ph){ images.push(null); return; }
     const b64 = ph.data.split(",")[1];
@@ -578,15 +693,14 @@ async function buildPdf(ent, list){
     images.push({bytes, w:ph.w, h:ph.h});
   });
 
-  // Assemblage du PDF
   const chunks=[]; let offset=0; const offsets=[];
   const push = arr => { const u = arr instanceof Uint8Array ? arr : Uint8Array.from(arr); chunks.push(u); offset+=u.length; };
   const obj = (id, bodyParts) => { offsets[id]=offset; push(L1(`${id} 0 obj\n`)); for (const p of bodyParts) push(p); push(L1(`\nendobj\n`)); };
 
   push(L1("%PDF-1.4\n%")); push([226,227,207,211]); push(L1("\n"));
   const nImg = images.length;
-  const imgId = i => 5+i;                       // 5..4+nImg
-  const contId = i => 5+nImg+2*i;               // par page
+  const imgId = i => 5+i;
+  const contId = i => 5+nImg+2*i;
   const pageId = i => 6+nImg+2*i;
   const kids = pages.map((_,i)=>`${pageId(i)} 0 R`).join(" ");
 
@@ -635,6 +749,7 @@ $("#btn-print").addEventListener("click", async ()=>{
     if (!(err && err.name==="AbortError")){ console.error(err); toast("Échec de la génération du PDF"); }
   } finally { btn.disabled = false; updateReportSummary(); }
 });
+
 $("#btn-mail").addEventListener("click", ()=>{
   const ent = cfg.entreprises.find(e=>e.id===$("#rp-ent").value);
   const list = reportObs();
@@ -660,7 +775,6 @@ $("#s-chantier").addEventListener("change", async e=>{ cfg.chantier = e.target.v
 function renderChips(){
   const mk = (arr, kind) => arr.map((v,i)=>`<span class="chip">${esc(v)}<button data-rm="${kind}:${i}" aria-label="Supprimer">×</button></span>`).join("") || `<span class="hint">Liste vide.</span>`;
   $("#list-etages").innerHTML = mk(cfg.etages,"etage");
-  // sélecteur d'étage des réglages (on conserve la sélection en cours)
   const sel = $("#s-piece-etage");
   const prev = sel.value;
   fillSelect(sel, cfg.etages);
@@ -680,6 +794,7 @@ function renderChips(){
   }));
 }
 $("#s-piece-etage").addEventListener("change", renderChips);
+
 function renderEnts(){
   $("#list-ents").innerHTML = cfg.entreprises.map(e=>`
     <div class="ent-item">
@@ -709,13 +824,30 @@ document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click", a
   await saveCfg(); renderAll();
 }));
 
+/* ---- sauvegarde / restauration ---- */
 $("#btn-export").addEventListener("click", ()=>{
-  const data = JSON.stringify({cfg, observations}, null, 1);
+  const data = JSON.stringify({version:3, cfg, observations}, null, 1);
   const blob = new Blob([data], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "tour-de-chantier-sauvegarde.json";
+  a.download = "tour-de-chantier-sauvegarde-"+new Date().toISOString().slice(0,10)+".json";
   a.click(); URL.revokeObjectURL(a.href);
+});
+$("#btn-import").addEventListener("click", ()=>$("#import-file").click());
+$("#import-file").addEventListener("change", async ev=>{
+  const f = ev.target.files[0]; if (!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    if (!data.cfg || !Array.isArray(data.observations)) throw new Error("format");
+    if (!confirm(`Importer cette sauvegarde ? (${data.observations.length} observation(s) — remplace les données actuelles)`)) return;
+    for (const o of observations) await store.del("photo:"+o.id);
+    cfg = data.cfg; observations = data.observations;
+    await saveCfg();
+    for (const o of observations) if (o.photo) await store.set("photo:"+o.id, o.photo);
+    await saveObs();
+    renderAll(); toast("Sauvegarde importée ✓");
+  } catch(e){ toast("Fichier de sauvegarde invalide"); }
+  ev.target.value="";
 });
 $("#btn-clear").addEventListener("click", async ()=>{
   if (!confirm("Supprimer TOUTES les observations ? (les réglages sont conservés)")) return;
