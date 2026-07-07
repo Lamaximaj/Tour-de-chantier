@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Tour de chantier</title>
+<style>
+  :root{
+    --paper:#FBFAF6;        /* papier plan */
+    --bg:#EFEDE6;           /* fond feuille */
+    --ink:#1D1D1F;          /* encre */
+    --muted:#71716C;
+    --line:#C8C6BC;         /* traits fins */
+    --brick:#A32E20;        /* rouge brique — murs conservés */
+    --brick-dark:#7E2318;
+    --brick-paper:#F5E7E3;
+    --ok:#2F6B3F;
+    --danger:#A32E20;
+    --r:2px;                /* angles de dessin technique */
+    --tap:52px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);color:var(--ink);
+    padding-bottom:calc(150px + env(safe-area-inset-bottom));
+    font-size:16px;line-height:1.45;
+  }
+  /* voile opaque sous la barre d'état iOS (heure/batterie) quand on défile */
+  body::before{
+    content:"";position:fixed;top:0;left:0;right:0;
+    height:env(safe-area-inset-top);
+    background:var(--bg);z-index:30;
+  }
+
+  /* ---- hachures brique (signature, cf. légende "murs porteurs conservés") ---- */
+  .hatch{
+    height:12px;
+    background-color:var(--brick-paper);
+    background-image:repeating-linear-gradient(45deg, var(--brick) 0 1.6px, transparent 1.6px 6px);
+    border-bottom:1.5px solid var(--ink);
+  }
+
+  /* ---- cartouche ---- */
+  header.app{
+    background:var(--paper);
+    border-bottom:1.5px solid var(--ink);
+    padding-top:env(safe-area-inset-top);
+  }
+  .cartouche{max-width:640px;margin:0 auto;}
+  .cartouche .row1{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:8px 16px 6px;border-bottom:1px solid var(--line);
+  }
+  .cartouche .row1 .phase{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--brick-dark)}
+  .cartouche .row1 .date{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+  .cartouche h1{font-size:21px;font-weight:800;letter-spacing:-0.01em;padding:8px 16px 2px}
+  .cartouche .site{font-size:12px;color:var(--muted);padding:0 16px 10px;letter-spacing:.02em}
+
+  main{padding:16px;max-width:640px;margin:0 auto}
+  .screen{display:none}
+  .screen.active{display:block}
+
+  h2{
+    font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);
+    margin:20px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--ink);
+    display:flex;align-items:center;gap:8px;
+  }
+  h2::before{content:"";width:10px;height:10px;border:1px solid var(--ink);
+    background-image:repeating-linear-gradient(45deg, var(--brick) 0 1.2px, transparent 1.2px 4px);
+    background-color:var(--brick-paper);flex-shrink:0}
+  h2:first-child{margin-top:0}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+
+  label{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px}
+  label:first-child{margin-top:0}
+  select,input[type=text],input[type=email],textarea{
+    width:100%;min-height:var(--tap);padding:12px;font-size:17px;font-family:inherit;
+    border:1px solid var(--ink);border-radius:var(--r);background:var(--paper);color:var(--ink);
+    appearance:none;-webkit-appearance:none;
+  }
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%231D1D1F' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+  textarea{min-height:96px;resize:vertical}
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brick);box-shadow:0 0 0 1px var(--brick)}
+
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    min-height:var(--tap);padding:12px 16px;border-radius:var(--r);
+    font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;
+    letter-spacing:.02em;border:1.5px solid var(--ink);
+  }
+  .btn-primary{background:var(--brick);border-color:var(--brick-dark);color:#fff}
+  .btn-primary:active{background:var(--brick-dark)}
+  .btn-outline{background:var(--paper);color:var(--ink)}
+  .btn-danger{background:transparent;color:var(--brick-dark);border-color:var(--brick)}
+  .btn-sm{min-height:40px;font-size:13px;padding:8px 12px;width:auto;letter-spacing:.04em;text-transform:uppercase}
+  .btn:disabled{opacity:.4}
+  .row{display:flex;gap:10px;margin-top:10px}
+  .row .btn{flex:1}
+
+  /* photo */
+  .photo-slot{position:relative;border:1px dashed var(--ink);border-radius:var(--r);overflow:hidden;background:var(--paper)}
+  .photo-slot.empty{display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--muted);font-weight:600}
+  .photo-slot img{display:block;width:100%;max-height:280px;object-fit:cover}
+  .photo-slot input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
+
+  /* liste observations */
+  .obs{display:flex;gap:12px;align-items:flex-start}
+  .obs img{width:72px;height:72px;object-fit:cover;border-radius:var(--r);border:1px solid var(--line);flex-shrink:0;background:var(--bg)}
+  .obs .noimg{width:72px;height:72px;border-radius:var(--r);border:1px solid var(--line);flex-shrink:0;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px}
+  .obs .meta{flex:1;min-width:0}
+  .obs .loc{font-weight:800;font-size:15px}
+  .obs .ent{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brick-dark);border:1px solid var(--brick);border-radius:var(--r);padding:2px 7px;margin:5px 0;background:var(--brick-paper)}
+  .obs .desc{font-size:14px}
+  .obs .date{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .obs.done{opacity:.5}
+  .obs.done .loc{text-decoration:line-through}
+  .obs-actions{display:flex;gap:8px;margin-top:10px}
+  .obs-actions .btn{flex:1}
+
+  .count{font-variant-numeric:tabular-nums;font-weight:800}
+  .empty-state{text-align:center;color:var(--muted);padding:36px 16px}
+  .empty-state .big{font-size:38px;margin-bottom:8px}
+
+  /* réglages : listes éditables */
+  .chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .chip{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--ink);border-radius:var(--r);padding:6px 6px 6px 12px;font-size:14px;font-weight:600}
+  .chip button{border:1px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:var(--r);width:24px;height:24px;font-size:14px;line-height:1;cursor:pointer}
+  .add-row{display:flex;gap:8px}
+  .add-row input{flex:1}
+  .add-row .btn{width:var(--tap);flex-shrink:0;font-size:22px}
+  .ent-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .ent-item:last-child{border-bottom:none}
+  .ent-item .n{font-weight:700}
+  .ent-item .e{font-size:13px;color:var(--muted);word-break:break-all}
+
+  /* barre d'onglets */
+  nav{
+    position:fixed;bottom:0;left:0;right:0;background:var(--paper);
+    border-top:1.5px solid var(--ink);display:flex;
+    padding-bottom:max(6px, env(safe-area-inset-bottom));z-index:10;
+  }
+  nav button{
+    flex:1;background:none;border:none;padding:10px 4px 8px;cursor:pointer;position:relative;
+    font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  nav button .ic{font-size:21px;line-height:1}
+  nav button.active{color:var(--brick-dark)}
+  nav button.active::after{content:"";position:absolute;top:0;left:20%;right:20%;height:3px;background:var(--brick)}
+  nav .badge{position:absolute;transform:translate(16px,-4px);background:var(--brick);color:#fff;font-size:10px;font-weight:800;border-radius:99px;min-width:17px;padding:1px 4px;font-variant-numeric:tabular-nums}
+
+  .toast{
+    position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:var(--r);font-size:14px;font-weight:600;
+    opacity:0;transition:.25s;z-index:20;pointer-events:none;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .hint{font-size:13px;color:var(--muted);margin-top:8px}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<div class="hatch"></div>
+<header class="app">
+  <div class="cartouche">
+    <div class="row1">
+      <span class="phase">Tour de chantier — Phase DET</span>
+      <span class="date" id="hd-date"></span>
+    </div>
+    <h1 id="hd-title">Observations</h1>
+    <div class="site" id="hd-site"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ========== SAISIE ========== -->
+  <section class="screen" id="screen-new">
+    <div class="card">
+      <label>Photo</label>
+      <div class="photo-slot empty" id="photo-slot">
+        <span id="photo-hint">📷 &nbsp;Prendre une photo</span>
+        <img id="photo-preview" alt="" style="display:none">
+        <input type="file" accept="image/*" capture="environment" id="photo-input">
+      </div>
+
+      <label for="f-etage">Étage</label>
+      <select id="f-etage"></select>
+
+      <label for="f-piece">Pièce</label>
+      <select id="f-piece"></select>
+
+      <label for="f-ent">Entreprise concernée</label>
+      <select id="f-ent"></select>
+
+      <label for="f-desc">Ce qu'il faut faire</label>
+      <textarea id="f-desc" placeholder="Ex. : reprendre le joint silicone autour de la baignoire"></textarea>
+    </div>
+    <button class="btn btn-primary" id="btn-save">Enregistrer l'observation</button>
+    <button class="btn btn-outline hidden" id="btn-cancel-edit" style="margin-top:10px">Annuler la modification</button>
+    <p class="hint">Les listes d'étages, pièces et entreprises se gèrent dans Réglages.</p>
+  </section>
+
+  <!-- ========== LISTE ========== -->
+  <section class="screen" id="screen-list">
+    <div class="card">
+      <label for="filter-ent">Filtrer par entreprise</label>
+      <select id="filter-ent"></select>
+    </div>
+    <div id="obs-list"></div>
+  </section>
+
+  <!-- ========== RAPPORTS ========== -->
+  <section class="screen" id="screen-report">
+    <div class="card">
+      <label for="rp-ent">Entreprise</label>
+      <select id="rp-ent"></select>
+      <div id="rp-summary" class="hint"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-print">1 · Générer le rapport PDF</button>
+    <p class="hint" style="margin-bottom:14px">Le PDF (avec photos) s'ouvre dans le menu de partage : choisissez <strong>Mail</strong> pour le joindre directement, ou <strong>Enregistrer dans Fichiers</strong>.</p>
+    <button class="btn btn-outline" id="btn-mail">2 · Préparer l'email</button>
+    <p class="hint">Ouvre Mail avec le destinataire, l'objet et la liste des points pré-remplis. Joignez-y le PDF de l'étape 1.</p>
+  </section>
+
+  <!-- ========== RÉGLAGES ========== -->
+  <section class="screen" id="screen-settings">
+    <div class="card">
+      <label for="s-chantier">Nom du chantier</label>
+      <input type="text" id="s-chantier" placeholder="Ex. : Résidence Les Tilleuls">
+      <p class="hint" id="storage-status"></p>
+    </div>
+
+    <h2>Étages</h2>
+    <div class="card">
+      <div class="chip-list" id="list-etages"></div>
+      <div class="add-row">
+        <input type="text" id="add-etage" placeholder="Ex. : R+3">
+        <button class="btn btn-primary" data-add="etage">+</button>
+      </div>
+    </div>
+
+    <h2>Pièces par étage</h2>
+    <div class="card">
+      <label for="s-piece-etage">Étage à modifier</label>
+      <select id="s-piece-etage" style="margin-bottom:10px"></select>
+      <div class="chip-list" id="list-pieces"></div>
+      <div class="add-row">
+        <input type="text" id="add-piece" placeholder="Ex. : Salle de bain">
+        <button class="btn btn-primary" data-add="piece">+</button>
+      </div>
+    </div>
+
+    <h2>Entreprises</h2>
+    <div class="card">
+      <div id="list-ents"></div>
+      <div style="margin-top:10px">
+        <input type="text" id="add-ent-nom" placeholder="Nom (ex. : Plomberie Durand)" style="margin-bottom:8px">
+        <input type="email" id="add-ent-mail" placeholder="Email (ex. : contact@durand.fr)" style="margin-bottom:8px">
+        <button class="btn btn-primary" data-add="ent" style="width:100%">Ajouter l'entreprise</button>
+      </div>
+    </div>
+
+    <h2>Données</h2>
+    <div class="card">
+      <button class="btn btn-outline btn-sm" id="btn-export" style="width:100%;margin-bottom:8px">Exporter une sauvegarde (JSON)</button>
+      <button class="btn btn-outline btn-sm" id="btn-import" style="width:100%;margin-bottom:8px">Importer une sauvegarde</button>
+      <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+      <button class="btn btn-danger btn-sm" id="btn-clear" style="width:100%">Supprimer toutes les observations</button>
+      <p class="hint">Les données sont stockées uniquement sur cet appareil. Pensez à exporter une sauvegarde de temps en temps.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- Barre d'onglets -->
+<nav>
+  <button data-screen="new"><span class="ic">📷</span>Saisie</button>
+  <button data-screen="list"><span class="badge" id="nav-count" style="display:none"></span><span class="ic">📋</span>Liste</button>
+  <button data-screen="report"><span class="ic">📄</span>Rapports</button>
+  <button data-screen="settings"><span class="ic">⚙️</span>Réglages</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =================================================================
+   STOCKAGE — IndexedDB (fiable et spacieux) → localStorage → mémoire
+   ================================================================= */
+const mem = {};
+const idb = {
+  db:null,
+  open(){
+    return new Promise((res)=>{
+      if (!("indexedDB" in window)) return res(false);
+      const rq = indexedDB.open("tour-chantier", 1);
+      rq.onupgradeneeded = ()=>{ rq.result.createObjectStore("kv"); };
+      rq.onsuccess = ()=>{ idb.db = rq.result; res(true); };
+      rq.onerror = ()=>res(false);
+      rq.onblocked = ()=>res(false);
+    });
+  },
+  tx(mode){ return idb.db.transaction("kv", mode).objectStore("kv"); },
+  get(k){ return new Promise((res,rej)=>{ const r=idb.tx("readonly").get(k); r.onsuccess=()=>res(r.result===undefined?null:r.result); r.onerror=()=>rej(r.error); }); },
+  set(k,v){ return new Promise((res,rej)=>{ const r=idb.tx("readwrite").put(v,k); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); },
+  del(k){ return new Promise((res,rej)=>{ const r=idb.tx("readwrite").delete(k); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); },
+  keys(){ return new Promise((res,rej)=>{ const r=idb.tx("readonly").getAllKeys(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+};
+let idbOk = false;
+const store = {
+  async get(k){
+    if (idbOk){ try { return await idb.get(k); } catch(e){} }
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e){ return mem[k] ?? null; }
+  },
+  async set(k,v){
+    if (idbOk){ try { await idb.set(k,v); return; } catch(e){} }
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){ mem[k]=v; toast("Mémoire pleine : exportez une sauvegarde"); }
+  },
+  async del(k){
+    if (idbOk){ try { await idb.del(k); return; } catch(e){} }
+    try { localStorage.removeItem(k); } catch(e){ delete mem[k]; }
+  }
+};
+
+/* =============== CONFIGURATION PAR DÉFAUT (plans Atelier Téqui) =============== */
+function logements(prefix, n){ const a=[]; for(let i=1;i<=n;i++) a.push("Logement "+prefix+String(i).padStart(2,"0")); return a; }
+const COMMUNS_ETAGE = ["Circulation","Palier","Escalier","Ascenseur"];
+const SEED_ENTREPRISES = [
+  {id:"e01", nom:"AFN",           email:"afnbatiment@gmail.com"},
+  {id:"e02", nom:"RBCM",          email:"rbcm20@yahoo.fr"},
+  {id:"e03", nom:"SRPI",          email:"dorinrakos@yahoo.fr"},
+  {id:"e04", nom:"CSDM",          email:"dtangi.csdm@outlook.com"},
+  {id:"e05", nom:"Corabat",       email:"eltet@corabat.fr"},
+  {id:"e06", nom:"SP2E",          email:"sp2e93.travaux@hotmail.com"},
+  {id:"e07", nom:"SDM",           email:"mrebillet@delagrave-sdm.fr"},
+  {id:"e08", nom:"Broussouloux",  email:"philippe@broussouloux-isolation.fr"},
+  {id:"e09", nom:"Acqua France",  email:"yunus.ayhan@acquafrance.com"},
+  {id:"e10", nom:"NPH",           email:"nhp_ecolo@yahoo.fr"}
+];
+const DEFAULT_CFG = {
+  chantier: "5 rue du Bessin / 96 rue Castagnary – 75015 Paris",
+  etages: ["2ème sous-sol","1er sous-sol","RDC","R+1","R+2","R+3","R+4","R+5","R+6","R+7 Toiture","Extérieurs / Façades"],
+  pieces: {
+    "2ème sous-sol": ["Local VMC + PAC","Locaux techniques communs","Sous-station CPCU","Sas CPCU","Local Télécom","Réserve","Vide technique","Local entretien","Cuves eaux pluviales", ...COMMUNS_ETAGE],
+    "1er sous-sol": ["Salle de réunion","Espace détente","Patio","Salle de repos crèche","Office / Biberonnerie","Atelier","Vestiaires crèche","Lingerie / Buanderie crèche","Local CTA","Local Eau","TGBT","Stockage","Local entretien","Salle commune / Cuisine","Salle de sport","Laverie résidence","Vestiaires résidence","Sanitaires / Douches", ...COMMUNS_ETAGE],
+    "RDC": ["Hall crèche","Hall résidence","Local poussettes","Salle d'éveil Grands","Salle d'éveil Petits/Moyens","Repos Petits/Moyens","Espace repas / Goûter","Espace change","Espace pot","Bureau direction crèche","Bureau médecin","Accueil cabinet médical","Cabinet médical","Kinésithérapie","Bureau accueil résidence","Bureau gestionnaire","Travailleur social","Local OM / Conteneurs","Jardin / Espaces extérieurs crèche", ...COMMUNS_ETAGE],
+    "R+1": [...COMMUNS_ETAGE, "Salle d'eau commune", ...logements("1",14)],
+    "R+2": [...COMMUNS_ETAGE, "Salle d'eau commune", ...logements("2",13)],
+    "R+3": [...COMMUNS_ETAGE, "Salle d'eau commune", ...logements("3",14)],
+    "R+4": [...COMMUNS_ETAGE, "Passage réseaux", ...logements("4",13)],
+    "R+5": [...COMMUNS_ETAGE, "Local ménage", ...logements("5",13)],
+    "R+6": [...COMMUNS_ETAGE, "Local ménage", ...logements("6",11)],
+    "R+7 Toiture": ["Terrasse collective","Toiture végétalisée","Stockage terrasse","Local technique","Palier","Escalier","Ascenseur"],
+    "Extérieurs / Façades": ["Façade rue du Bessin","Façade rue Castagnary","Façades sur cour","Toiture zinc","Clôtures / Serrurerie","Espaces plantés","Rampe / Accès parking"]
+  },
+  entreprises: structuredClone(SEED_ENTREPRISES)
+};
+
+/* =============== ÉTAT =============== */
+let cfg = null;
+let observations = [];
+let currentPhoto = null;   // nouvelle photo prise (dataURL) — null = inchangée
+let editingId = null;      // id de l'observation en cours de modification
+
+const $ = s => document.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = ts => new Date(ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}) + " " + new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const entName = id => (cfg.entreprises.find(e=>e.id===id)||{}).nom || "—";
+function piecesFor(etage){ return (cfg.pieces && cfg.pieces[etage]) || []; }
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._to); t._to = setTimeout(()=>t.classList.remove("show"), 2400);
+}
+
+/* =============== INIT =============== */
+async function init(){
+  idbOk = await idb.open();
+
+  // demande à iOS/Safari de ne pas purger les données du site
+  try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e){}
+
+  cfg = await store.get("cfg");
+
+  // Migration depuis l'ancienne version (localStorage) vers IndexedDB
+  if (!cfg && idbOk){
+    try {
+      const oldCfg = localStorage.getItem("cfg");
+      if (oldCfg){
+        await idb.set("cfg", JSON.parse(oldCfg));
+        const oldIdx = localStorage.getItem("obs-index");
+        if (oldIdx){
+          const idx = JSON.parse(oldIdx);
+          await idb.set("obs-index", idx);
+          for (const o of idx){
+            const p = localStorage.getItem("photo:"+o.id);
+            if (p) await idb.set("photo:"+o.id, JSON.parse(p));
+          }
+        }
+        cfg = await store.get("cfg");
+        toast("Données récupérées ✓");
+      }
+    } catch(e){}
+  }
+  if (!cfg) cfg = structuredClone(DEFAULT_CFG);
+
+  // Migration : "pieces" liste unique → pièces par étage
+  if (Array.isArray(cfg.pieces)){
+    const flat = cfg.pieces; cfg.pieces = {};
+    for (const e of cfg.etages) cfg.pieces[e] = [...flat];
+    await saveCfg();
+  }
+
+  // Intégration unique des entreprises du chantier (sans doublon, sans réapparition si supprimées ensuite)
+  if (!cfg.entSeedV || cfg.entSeedV < 1){
+    const existants = new Set(cfg.entreprises.map(e=>e.nom.trim().toLowerCase()));
+    for (const e of SEED_ENTREPRISES){
+      if (!existants.has(e.nom.trim().toLowerCase())) cfg.entreprises.push(structuredClone(e));
+    }
+    cfg.entSeedV = 1;
+    await saveCfg();
+  }
+
+  observations = (await store.get("obs-index")) || [];
+  for (const o of observations){
+    if (o.hasPhoto && !o.photo){
+      const p = await store.get("photo:"+o.id);
+      if (p) o.photo = p;
+    }
+  }
+
+  // état de la persistance affiché dans Réglages
+  let persisted = false;
+  try { if (navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted(); } catch(e){}
+  $("#storage-status").textContent = idbOk
+    ? (persisted ? "Stockage : base interne, protégé contre la purge iOS ✓" : "Stockage : base interne de l'appareil ✓")
+    : "Stockage de secours (limité) — vérifiez que l'app est bien installée sur l'écran d'accueil.";
+
+  renderAll();
+  showScreen("new");
+}
+async function saveCfg(){ await store.set("cfg", cfg); }
+async function saveObs(){
+  const index = observations.map(o => ({...o, photo: undefined, hasPhoto: !!o.photo}));
+  await store.set("obs-index", index);
+}
+
+/* =============== NAVIGATION =============== */
+const TITLES = {new:"Nouvelle observation", list:"Observations", report:"Rapports", settings:"Réglages"};
+function showScreen(name){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $("#screen-"+name).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active", b.dataset.screen===name));
+  $("#hd-title").textContent = (name==="new" && editingId) ? "Modifier l'observation" : TITLES[name];
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+  if (editingId && b.dataset.screen!=="new") cancelEdit(false);
+  showScreen(b.dataset.screen);
+}));
+
+/* =============== RENDUS =============== */
+function fillSelect(sel, items, placeholder){
+  sel.innerHTML = "";
+  if (placeholder){ const o=document.createElement("option"); o.value=""; o.textContent=placeholder; sel.appendChild(o); }
+  for (const it of items){
+    const o = document.createElement("option");
+    if (typeof it === "string"){ o.value=it; o.textContent=it; }
+    else { o.value=it.id; o.textContent=it.nom; }
+    sel.appendChild(o);
+  }
+}
+function renderAll(){
+  $("#hd-date").textContent = new Date().toLocaleDateString('fr-FR');
+  $("#hd-site").textContent = cfg.chantier || "";
+  fillSelect($("#f-etage"), cfg.etages, "Choisir un étage…");
+  refreshPieceSelect();
+  fillSelect($("#f-ent"), cfg.entreprises, cfg.entreprises.length ? "Choisir une entreprise…" : "Aucune entreprise (voir Réglages)");
+  fillSelect($("#filter-ent"), cfg.entreprises, "Toutes les entreprises");
+  fillSelect($("#rp-ent"), cfg.entreprises, cfg.entreprises.length ? "Choisir une entreprise…" : "Aucune entreprise (voir Réglages)");
+  $("#s-chantier").value = cfg.chantier;
+  renderChips(); renderEnts(); renderList(); updateBadge(); updateReportSummary();
+}
+function updateBadge(){
+  const n = observations.filter(o=>o.statut!=="done").length;
+  const b = $("#nav-count");
+  b.style.display = n ? "" : "none"; b.textContent = n;
+}
+function refreshPieceSelect(){
+  const et = $("#f-etage").value;
+  fillSelect($("#f-piece"), piecesFor(et), et ? "Choisir une pièce…" : "Choisir d'abord un étage…");
+}
+$("#f-etage").addEventListener("change", refreshPieceSelect);
+
+/* ---- saisie photo ---- */
+$("#photo-input").addEventListener("change", ev=>{
+  const f = ev.target.files[0]; if (!f) return;
+  const img = new Image();
+  const url = URL.createObjectURL(f);
+  img.onload = ()=>{
+    const MAX = 1000;
+    const scale = Math.min(1, MAX/Math.max(img.width,img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    currentPhoto = c.toDataURL("image/jpeg",0.65);
+    URL.revokeObjectURL(url);
+    showPhotoPreview(currentPhoto);
+  };
+  img.src = url;
+});
+function showPhotoPreview(dataURL){
+  const p = $("#photo-preview");
+  if (dataURL){ p.src = dataURL; p.style.display="block"; $("#photo-hint").style.display="none"; $("#photo-slot").classList.remove("empty"); }
+  else { p.style.display="none"; $("#photo-hint").style.display=""; $("#photo-slot").classList.add("empty"); }
+  $("#photo-input").value = "";
+}
+function resetForm(keepLocation=true){
+  $("#f-desc").value = "";
+  currentPhoto = null;
+  showPhotoPreview(null);
+  if (!keepLocation){ $("#f-etage").value=""; refreshPieceSelect(); $("#f-ent").value=""; }
+}
+
+/* ---- enregistrer (création ou modification) ---- */
+$("#btn-save").addEventListener("click", async ()=>{
+  const etage=$("#f-etage").value, piece=$("#f-piece").value, entId=$("#f-ent").value, desc=$("#f-desc").value.trim();
+  if (!etage||!piece){ toast("Indiquez l'étage et la pièce"); return; }
+  if (!entId){ toast("Choisissez l'entreprise concernée"); return; }
+  if (!desc){ toast("Décrivez ce qu'il faut faire"); return; }
+
+  if (editingId){
+    const o = observations.find(x=>x.id===editingId);
+    if (o){
+      o.etage=etage; o.piece=piece; o.entId=entId; o.desc=desc;
+      if (currentPhoto){ o.photo=currentPhoto; await store.set("photo:"+o.id, o.photo); }
+      await saveObs();
+      toast("Observation modifiée ✓");
+    }
+    cancelEdit(false);
+    renderList(); updateBadge(); updateReportSummary();
+    showScreen("list");
+    return;
+  }
+
+  const o = { id:uid(), ts:Date.now(), etage, piece, entId, desc, statut:"todo", photo:currentPhoto };
+  observations.unshift(o);
+  if (o.photo) await store.set("photo:"+o.id, o.photo);
+  await saveObs();
+  resetForm(true); // on garde étage + pièce : on enchaîne souvent dans la même zone
+  renderList(); updateBadge(); updateReportSummary();
+  toast("Observation enregistrée ✓");
+});
+
+/* ---- modification ---- */
+function startEdit(id){
+  const o = observations.find(x=>x.id===id); if (!o) return;
+  editingId = id;
+  $("#f-etage").value = o.etage; refreshPieceSelect();
+  $("#f-piece").value = o.piece;
+  $("#f-ent").value = o.entId;
+  $("#f-desc").value = o.desc;
+  currentPhoto = null;
+  showPhotoPreview(o.photo || null);
+  $("#btn-save").textContent = "Enregistrer les modifications";
+  $("#btn-cancel-edit").classList.remove("hidden");
+  showScreen("new");
+}
+function cancelEdit(goBack=true){
+  editingId = null;
+  $("#btn-save").textContent = "Enregistrer l'observation";
+  $("#btn-cancel-edit").classList.add("hidden");
+  resetForm(true);
+  if (goBack) showScreen("list");
+}
+$("#btn-cancel-edit").addEventListener("click", ()=>cancelEdit(true));
+
+/* ---- liste ---- */
+$("#filter-ent").addEventListener("change", renderList);
+function renderList(){
+  const filter = $("#filter-ent").value;
+  const list = observations.filter(o=>!filter || o.entId===filter);
+  const box = $("#obs-list");
+  if (!list.length){
+    box.innerHTML = `<div class="empty-state"><div class="big">🗒️</div>Aucune observation${filter?" pour cette entreprise":""}.<br>Ajoutez-en depuis l'onglet Saisie.</div>`;
+    return;
+  }
+  box.innerHTML = list.map(o=>`
+    <div class="card">
+      <div class="obs ${o.statut==='done'?'done':''}">
+        ${o.photo?`<img src="${o.photo}" alt="photo">`:`<div class="noimg">📷</div>`}
+        <div class="meta">
+          <div class="loc">${esc(o.etage)} · ${esc(o.piece)}</div>
+          <span class="ent">${esc(entName(o.entId))}</span>
+          <div class="desc">${esc(o.desc)}</div>
+          <div class="date">${fmtDate(o.ts)}</div>
+        </div>
+      </div>
+      <div class="obs-actions">
+        <button class="btn btn-outline btn-sm" data-edit="${o.id}">Modifier</button>
+        <button class="btn btn-outline btn-sm" data-toggle="${o.id}">${o.statut==='done'?"Rouvrir":"Fait ✓"}</button>
+        <button class="btn btn-danger btn-sm" data-del="${o.id}">Suppr.</button>
+      </div>
+    </div>`).join("");
+  box.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", ()=>startEdit(b.dataset.edit)));
+  box.querySelectorAll("[data-toggle]").forEach(b=>b.addEventListener("click", async ()=>{
+    const o = observations.find(x=>x.id===b.dataset.toggle);
+    o.statut = o.statut==="done" ? "todo" : "done";
+    await saveObs(); renderList(); updateBadge(); updateReportSummary();
+  }));
+  box.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", async ()=>{
+    if (!confirm("Supprimer cette observation ?")) return;
+    observations = observations.filter(x=>x.id!==b.dataset.del);
+    await store.del("photo:"+b.dataset.del);
+    await saveObs(); renderList(); updateBadge(); updateReportSummary();
+  }));
+}
+
+/* ---- rapports ---- */
+$("#rp-ent").addEventListener("change", updateReportSummary);
+function reportObs(){
+  const entId = $("#rp-ent").value;
+  return entId ? observations.filter(o=>o.entId===entId && o.statut!=="done") : [];
+}
+function updateReportSummary(){
+  const entId = $("#rp-ent").value;
+  const n = reportObs().length;
+  $("#rp-summary").innerHTML = entId
+    ? `<span class="count">${n}</span> observation${n>1?"s":""} en cours pour cette entreprise.`
+    : "Sélectionnez une entreprise pour générer son rapport.";
+  $("#btn-print").disabled = $("#btn-mail").disabled = !entId || !n;
+}
+
+/* ---------- Génération PDF native (sans dépendance, fonctionne hors-ligne) ---------- */
+const WIN = {0x2019:0x92,0x2018:0x91,0x201C:0x93,0x201D:0x94,0x2013:0x96,0x2014:0x97,0x20AC:0x80,0x0153:0x9C,0x0152:0x8C,0x2026:0x85,0x00A0:0x20};
+const L1 = s => { const out=[]; for (const ch of String(s)){ let c=ch.codePointAt(0); if (c>0xFF) c=WIN[c]||63; out.push(c);} return out; };
+const pdfStr = s => String(s).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
+function wrapText(str, maxChars){
+  const lines=[];
+  for (const raw of String(str).split(/\r?\n/)){
+    let line="";
+    for (const w of raw.split(/\s+/)){
+      if (!w) continue;
+      if ((line+" "+w).trim().length<=maxChars) line=(line?line+" ":"")+w;
+      else { if (line) lines.push(line); line = w.length>maxChars ? w.slice(0,maxChars) : w; }
+    }
+    lines.push(line);
+  }
+  return lines.length?lines:[""];
+}
+
+async function buildPdf(ent, list){
+  const PW=595, PH=842, M=42, BW=PW-2*M;
+  const BRICK="0.64 0.18 0.13", INK="0.11 0.11 0.12", GRAY="0.44 0.44 0.42";
+  const today = new Date().toLocaleDateString('fr-FR');
+
+  const photos = await Promise.all(list.map(o => o.photo ? new Promise(res=>{
+    const im=new Image();
+    im.onload=()=>res({w:im.naturalWidth,h:im.naturalHeight,data:o.photo});
+    im.onerror=()=>res(null);
+    im.src=o.photo;
+  }) : Promise.resolve(null)));
+
+  const pages=[]; let cur=null, y=0;
+  const images=[];
+  const op   = s => cur.ops.push(...L1(s));
+  const rect = (x,yy,w,h,rgb)=>op(`${rgb} rg ${x.toFixed(1)} ${yy.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f\n`);
+  const line = (yy)=>op(`0.78 0.77 0.73 RG 0.6 w ${M} ${yy.toFixed(1)} m ${PW-M} ${yy.toFixed(1)} l S\n`);
+  const text = (x,yy,str,font,size,rgb=INK)=>op(`BT ${rgb} rg /${font} ${size} Tf ${x.toFixed(1)} ${yy.toFixed(1)} Td (${pdfStr(str)}) Tj ET\n`);
+  const np = ()=>{
+    cur={ops:[]}; pages.push(cur);
+    // bande hachurée façon "murs conservés" en tête de page
+    op(`${BRICK} RG 0.9 w\n`);
+    for (let x=-14; x<PW; x+=6) op(`${x} ${PH-14} m ${x+14} ${PH} l S\n`);
+    op(`${INK} RG 1.2 w ${0} ${PH-14} m ${PW} ${PH-14} l S\n`);
+    y = PH-38;
+  };
+  const need = h => { if (y-h < M) np(); };
+
+  np();
+  text(M, y-10, "RAPPORT DE VISITE DE CHANTIER — PHASE DET", "F2", 9, BRICK); y-=26;
+  text(M, y-10, ent.nom, "F2", 19); y-=24;
+  text(M, y-8, `${cfg.chantier || "Chantier"} — visite du ${today} — ${list.length} point${list.length>1?"s":""} à traiter`, "F1", 10, GRAY); y-=16;
+  line(y); y-=18;
+
+  list.forEach((o,i)=>{
+    const descLines = wrapText("À faire : "+o.desc, 88);
+    const ph = photos[i];
+    let wpt=0, hpt=0;
+    if (ph){ const s=Math.min(BW/ph.w, 250/ph.h); wpt=ph.w*s; hpt=ph.h*s; }
+    const blockH = 14+18+descLines.length*13+13+(ph?hpt+8:0)+16;
+    need(Math.min(blockH, PH-2*M));
+
+    text(M, y-9, `POINT ${i+1} / ${list.length}`, "F2", 9, BRICK); y-=15;
+    text(M, y-11, `${o.etage} — ${o.piece}`, "F2", 13); y-=18;
+    for (const l of descLines){ need(13); text(M, y-9, l, "F1", 11); y-=13; }
+    need(13); text(M, y-8, "Constaté le "+fmtDate(o.ts), "F1", 9, GRAY); y-=15;
+    if (ph){
+      need(hpt+8);
+      op(`q ${wpt.toFixed(1)} 0 0 ${hpt.toFixed(1)} ${M} ${(y-hpt).toFixed(1)} cm /Im${i+1} Do Q\n`);
+      y-=hpt+8;
+    }
+    need(16); line(y); y-=16;
+  });
+  need(14);
+  text(M, y-9, `Rapport généré le ${today}. Merci de confirmer la levée de chaque point par retour d'email.`, "F1", 9, GRAY);
+
+  photos.forEach(ph=>{
+    if (!ph){ images.push(null); return; }
+    const b64 = ph.data.split(",")[1];
+    const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+    for (let j=0;j<bin.length;j++) bytes[j]=bin.charCodeAt(j);
+    images.push({bytes, w:ph.w, h:ph.h});
+  });
+
+  const chunks=[]; let offset=0; const offsets=[];
+  const push = arr => { const u = arr instanceof Uint8Array ? arr : Uint8Array.from(arr); chunks.push(u); offset+=u.length; };
+  const obj = (id, bodyParts) => { offsets[id]=offset; push(L1(`${id} 0 obj\n`)); for (const p of bodyParts) push(p); push(L1(`\nendobj\n`)); };
+
+  push(L1("%PDF-1.4\n%")); push([226,227,207,211]); push(L1("\n"));
+  const nImg = images.length;
+  const imgId = i => 5+i;
+  const contId = i => 5+nImg+2*i;
+  const pageId = i => 6+nImg+2*i;
+  const kids = pages.map((_,i)=>`${pageId(i)} 0 R`).join(" ");
+
+  obj(1,[L1(`<< /Type /Catalog /Pages 2 0 R >>`)]);
+  obj(2,[L1(`<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`)]);
+  obj(3,[L1(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>`)]);
+  obj(4,[L1(`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>`)]);
+  images.forEach((im,i)=>{
+    if (!im){ obj(imgId(i),[L1(`<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length 1 >>\nstream\n`),[0],L1(`\nendstream`)]); return; }
+    obj(imgId(i),[L1(`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>\nstream\n`), im.bytes, L1(`\nendstream`)]);
+  });
+  const xobjDict = images.map((_,i)=>`/Im${i+1} ${imgId(i)} 0 R`).join(" ");
+  pages.forEach((p,i)=>{
+    const stream = Uint8Array.from(p.ops);
+    obj(contId(i),[L1(`<< /Length ${stream.length} >>\nstream\n`), stream, L1(`\nendstream`)]);
+    obj(pageId(i),[L1(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << ${xobjDict} >> >> /Contents ${contId(i)} 0 R >>`)]);
+  });
+
+  const nObj = 6+nImg+2*(pages.length-1)+1;
+  const xrefPos = offset;
+  push(L1(`xref\n0 ${nObj}\n0000000000 65535 f \n`));
+  for (let id=1; id<nObj; id++) push(L1(String(offsets[id]).padStart(10,"0")+" 00000 n \n"));
+  push(L1(`trailer\n<< /Size ${nObj} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`));
+
+  return new Blob(chunks, {type:"application/pdf"});
+}
+
+$("#btn-print").addEventListener("click", async ()=>{
+  const ent = cfg.entreprises.find(e=>e.id===$("#rp-ent").value);
+  const list = reportObs();
+  if (!ent || !list.length) return;
+  const btn = $("#btn-print"); btn.disabled = true; toast("Génération du PDF…");
+  try{
+    const blob = await buildPdf(ent, list);
+    const fname = `Rapport ${ent.nom} ${new Date().toISOString().slice(0,10)}.pdf`.replace(/[\/\\:*?"<>|]/g,"-");
+    const file = new File([blob], fname, {type:"application/pdf"});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:fname});
+    } else {
+      const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+      toast("PDF téléchargé");
+    }
+  } catch(err){
+    if (!(err && err.name==="AbortError")){ console.error(err); toast("Échec de la génération du PDF"); }
+  } finally { btn.disabled = false; updateReportSummary(); }
+});
+
+$("#btn-mail").addEventListener("click", ()=>{
+  const ent = cfg.entreprises.find(e=>e.id===$("#rp-ent").value);
+  const list = reportObs();
+  const today = new Date().toLocaleDateString('fr-FR');
+  const subject = `${cfg.chantier || "Chantier"} — points à traiter (visite du ${today})`;
+  const body =
+`Bonjour,
+
+Suite à la visite de chantier du ${today}${cfg.chantier?` (${cfg.chantier})`:""}, merci de traiter les points suivants :
+
+${list.map((o,i)=>`${i+1}. ${o.etage} — ${o.piece} : ${o.desc}`).join("\n")}
+
+Le rapport détaillé avec photos est joint à cet email.
+Merci de confirmer la levée de chaque point par retour d'email.
+
+Cordialement`;
+  location.href = `mailto:${encodeURIComponent(ent.email||"")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+});
+
+/* ---- réglages ---- */
+$("#s-chantier").addEventListener("change", async e=>{ cfg.chantier = e.target.value.trim(); await saveCfg(); renderAll(); });
+
+function renderChips(){
+  const mk = (arr, kind) => arr.map((v,i)=>`<span class="chip">${esc(v)}<button data-rm="${kind}:${i}" aria-label="Supprimer">×</button></span>`).join("") || `<span class="hint">Liste vide.</span>`;
+  $("#list-etages").innerHTML = mk(cfg.etages,"etage");
+  const sel = $("#s-piece-etage");
+  const prev = sel.value;
+  fillSelect(sel, cfg.etages);
+  if (cfg.etages.includes(prev)) sel.value = prev;
+  $("#list-pieces").innerHTML = mk(piecesFor(sel.value),"piece");
+  document.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click", async ()=>{
+    const [kind,i] = b.dataset.rm.split(":");
+    if (kind==="etage"){
+      const name = cfg.etages[+i];
+      if (!confirm(`Supprimer l'étage « ${name} » et sa liste de pièces ?`)) return;
+      cfg.etages.splice(+i,1);
+      delete cfg.pieces[name];
+    } else {
+      piecesFor($("#s-piece-etage").value).splice(+i,1);
+    }
+    await saveCfg(); renderAll();
+  }));
+}
+$("#s-piece-etage").addEventListener("change", renderChips);
+
+function renderEnts(){
+  $("#list-ents").innerHTML = cfg.entreprises.map(e=>`
+    <div class="ent-item">
+      <div><div class="n">${esc(e.nom)}</div><div class="e">${esc(e.email||"— pas d'email —")}</div></div>
+      <button class="btn btn-danger btn-sm" data-rment="${e.id}">×</button>
+    </div>`).join("") || `<span class="hint">Ajoutez vos entreprises (nom + email) pour pouvoir leur affecter des observations.</span>`;
+  document.querySelectorAll("[data-rment]").forEach(b=>b.addEventListener("click", async ()=>{
+    if (!confirm("Supprimer cette entreprise ?")) return;
+    cfg.entreprises = cfg.entreprises.filter(e=>e.id!==b.dataset.rment);
+    await saveCfg(); renderAll();
+  }));
+}
+document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click", async ()=>{
+  const kind = b.dataset.add;
+  if (kind==="etage"){ const v=$("#add-etage").value.trim(); if(!v) return; cfg.etages.push(v); cfg.pieces[v]=cfg.pieces[v]||[]; $("#add-etage").value=""; }
+  if (kind==="piece"){
+    const v=$("#add-piece").value.trim(); const et=$("#s-piece-etage").value;
+    if(!v||!et) return;
+    (cfg.pieces[et]=cfg.pieces[et]||[]).push(v); $("#add-piece").value="";
+  }
+  if (kind==="ent"){
+    const nom=$("#add-ent-nom").value.trim(), email=$("#add-ent-mail").value.trim();
+    if(!nom){ toast("Indiquez le nom de l'entreprise"); return; }
+    cfg.entreprises.push({id:uid(), nom, email});
+    $("#add-ent-nom").value=""; $("#add-ent-mail").value="";
+  }
+  await saveCfg(); renderAll();
+}));
+
+/* ---- sauvegarde / restauration ---- */
+$("#btn-export").addEventListener("click", ()=>{
+  const data = JSON.stringify({version:3, cfg, observations}, null, 1);
+  const blob = new Blob([data], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "tour-de-chantier-sauvegarde-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$("#btn-import").addEventListener("click", ()=>$("#import-file").click());
+$("#import-file").addEventListener("change", async ev=>{
+  const f = ev.target.files[0]; if (!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    if (!data.cfg || !Array.isArray(data.observations)) throw new Error("format");
+    if (!confirm(`Importer cette sauvegarde ? (${data.observations.length} observation(s) — remplace les données actuelles)`)) return;
+    for (const o of observations) await store.del("photo:"+o.id);
+    cfg = data.cfg; observations = data.observations;
+    await saveCfg();
+    for (const o of observations) if (o.photo) await store.set("photo:"+o.id, o.photo);
+    await saveObs();
+    renderAll(); toast("Sauvegarde importée ✓");
+  } catch(e){ toast("Fichier de sauvegarde invalide"); }
+  ev.target.value="";
+});
+$("#btn-clear").addEventListener("click", async ()=>{
+  if (!confirm("Supprimer TOUTES les observations ? (les réglages sont conservés)")) return;
+  for (const o of observations) await store.del("photo:"+o.id);
+  observations = [];
+  await saveObs(); renderAll(); toast("Observations supprimées");
+});
+
+init();
+</script>
+</body>
+</html>
